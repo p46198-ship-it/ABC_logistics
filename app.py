@@ -1,59 +1,46 @@
+import streamlit as st
 import joblib
-from flask import Flask, request, jsonify
 import pandas as pd
-
-app = Flask(__name__)
 
 # Load the trained model
 model = joblib.load('logi.sav')
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        # Get JSON data from the request
-        data = request.get_json(force=True)
+st.title('Delivery Delay Prediction')
+st.write('Enter the details below to predict if there will be a delivery delay.')
 
-        # Convert dictionary to DataFrame. Ensure column order matches training data.
-        # The order of columns was: 'Delivery_Distance', 'Traffic_Congestion', 'Weather_Condition',
-        # 'Delivery_Slot', 'Driver_Experience', 'Num_Stops', 'Vehicle_Age',
-        # 'Road_Condition_Score', 'Package_Weight', 'Fuel_Efficiency',
-        # 'Warehouse_Processing_Time'
-        feature_names = [
-            'Delivery_Distance', 'Traffic_Congestion', 'Weather_Condition',
-            'Delivery_Slot', 'Driver_Experience', 'Num_Stops', 'Vehicle_Age',
-            'Road_Condition_Score', 'Package_Weight', 'Fuel_Efficiency',
-            'Warehouse_Processing_Time'
-        ]
-        input_df = pd.DataFrame([data], columns=feature_names)
+# Input features
+delivery_distance = st.slider('Delivery Distance (km)', 0.0, 50.0, 25.0)
+traffic_congestion = st.slider('Traffic Congestion (1-5)', 1, 5, 3)
+weather_condition = st.slider('Weather Condition (1-5)', 1, 5, 3)
+delivery_slot = st.slider('Delivery Slot (1-3)', 1, 3, 2)
+driver_experience = st.slider('Driver Experience (years)', 0, 20, 10)
+num_stops = st.slider('Number of Stops', 1, 10, 5)
+vehicle_age = st.slider('Vehicle Age (years)', 0, 10, 5)
+road_condition_score = st.slider('Road Condition Score (1-5)', 1, 5, 3)
+package_weight = st.slider('Package Weight (kg)', 0.0, 50.0, 25.0)
+fuel_efficiency = st.slider('Fuel Efficiency (km/L)', 5.0, 20.0, 12.0)
+warehouse_processing_time = st.slider('Warehouse Processing Time (minutes)', 0, 120, 60)
 
-        # Make prediction
-        prediction = model.predict(input_df)
-        prediction_proba = model.predict_proba(input_df)
+# Create a DataFrame for prediction
+input_data = pd.DataFrame([{
+    'Delivery_Distance': delivery_distance,
+    'Traffic_Congestion': traffic_congestion,
+    'Weather_Condition': weather_condition,
+    'Delivery_Slot': delivery_slot,
+    'Driver_Experience': driver_experience,
+    'Num_Stops': num_stops,
+    'Vehicle_Age': vehicle_age,
+    'Road_Condition_Score': road_condition_score,
+    'Package_Weight': package_weight,
+    'Fuel_Efficiency': fuel_efficiency,
+    'Warehouse_Processing_Time': warehouse_processing_time
+}])
 
-        # Return prediction as JSON
-        return jsonify({
-            'prediction': int(prediction[0]),
-            'prediction_proba_class_0': float(prediction_proba[0][0]),
-            'prediction_proba_class_1': float(prediction_proba[0][1])
-        })
+if st.button('Predict Delivery Delay'):
+    prediction = model.predict(input_data)[0]
+    prediction_proba = model.predict_proba(input_data)[0]
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-if __name__ == '__main__':
-    # For local development, use app.run(debug=True)
-    # To run in Colab or a similar environment and expose via ngrok:
-    # 1. Install Flask: !pip install Flask
-    # 2. Run this cell.
-    # 3. In a new cell, run:
-    #    !pip install pyngrok
-    #    from pyngrok import ngrok
-    #    # Terminate any previous ngrok tunnels
-    #    ngrok.kill()
-    #    # Open a HTTP tunnel on port 5000
-    #    public_url = ngrok.connect(5000)
-    #    print(f" * ngrok tunnel available at: {public_url}")
-    #    # Now you can make requests to public_url/predict
-    
-    # For deployment, consider using a production-ready WSGI server like Gunicorn
-    app.run(host='0.0.0.0', port=5000)
+    if prediction == 1:
+        st.error(f"Prediction: Delivery will likely be delayed (Probability: {prediction_proba[1]:.2f})")
+    else:
+        st.success(f"Prediction: Delivery will likely be on time (Probability: {prediction_proba[0]
