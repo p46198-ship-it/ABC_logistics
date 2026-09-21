@@ -43,4 +43,4 @@ if st.button('Predict Delivery Delay'):
     if prediction == 1:
         st.error(f"Prediction: Delivery will likely be delayed (Probability: {prediction_proba[1]:.2f})")
     else:
-        st.success(f"Prediction: Delivery will likely be on time (Probability: {prediction_proba[0]
+        st.success(f"Prediction: Delivery will likely be on time (Probability: {prediction_proba[0]:.2f})")
